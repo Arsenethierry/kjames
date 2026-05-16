@@ -724,25 +724,31 @@ export default function ThreeEngine() {
           () => {
             if (engineDisposed) return
             s.hasVideo = true
-            // Muted autoplay is allowed everywhere — grab first frame
+            // Helper: wire the screen material to self-illuminate like an LED
+            const applyVideoToScreen = (playing: boolean) => {
+              s.mat.map = videoTex
+              s.mat.emissiveMap = videoTex
+              s.mat.emissive.set(0xffffff)
+              s.mat.emissiveIntensity = playing ? 1.0 : 0.12
+              s.mat.needsUpdate = true
+            }
+
+            // Try to grab the first frame so the screen shows a poster while paused.
+            // If the browser blocks this early-page autoplay attempt, that is fine —
+            // DO NOT set hasVideo = false here; activateEra() will call play() after
+            // the user scrolls (muted play always succeeds post-gesture).
             video.play()
               .then(() => {
                 requestAnimationFrame(() => {
                   if (currentEra !== i) video.pause()
-
-                  // Make the screen self-emissive like a real LED display:
-                  // diffuse map   → correct colors under light
-                  // emissiveMap   → screen glows at its own color regardless of scene light
-                  // emissive      → white multiplier so video colors pass through unchanged
-                  // emissiveIntensity 0.12 when idle (dim poster), 1.0 when active
-                  s.mat.map = videoTex
-                  s.mat.emissiveMap = videoTex
-                  s.mat.emissive.set(0xffffff)
-                  s.mat.emissiveIntensity = currentEra === i ? 1.0 : 0.12
-                  s.mat.needsUpdate = true
+                  applyVideoToScreen(currentEra === i)
                 })
               })
-              .catch(() => { s.hasVideo = false })
+              .catch(() => {
+                // First-frame grab blocked — video is still valid and ready.
+                // Set up the texture so it is waiting when activateEra plays it.
+                applyVideoToScreen(false)
+              })
           },
           { once: true },
         )
@@ -848,9 +854,19 @@ export default function ThreeEngine() {
         if (s.hasVideo && s.video) {
           // ── Video path ────────────────────────────────────────────────
           if (active) {
-            // Unmute only if audio is globally enabled and not muted
             s.video.muted = audioMuted || !audioEnabled
-            s.video.play().catch(() => {})
+            s.video.play()
+              .then(() => {
+                // If the canplay first-frame grab was blocked, apply texture now
+                if (s.videoTex && s.mat.map !== s.videoTex) {
+                  s.mat.map = s.videoTex
+                  s.mat.emissiveMap = s.videoTex
+                  s.mat.emissive.set(0xffffff)
+                  s.mat.emissiveIntensity = 1.0
+                  s.mat.needsUpdate = true
+                }
+              })
+              .catch(() => {})
           } else {
             s.video.pause()
             s.video.muted = true
