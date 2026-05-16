@@ -8,6 +8,17 @@ import react from "@astrojs/react"
 export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            three: ["three"],
+            gsap: ["gsap"],
+          },
+        },
+      },
+    },
   },
   integrations: [react()],
 })

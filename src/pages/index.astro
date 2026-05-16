@@ -1,17 +1,379 @@
 ---
-import Layout from "@/layouts/main.astro"
-import { Button } from "@/components/ui/button"
+import ThreeEngine from "@/components/ThreeEngine"
+import InteractiveTerminal from "@/components/InteractiveTerminal"
 ---
 
-<Layout>
-  <div class="flex min-h-svh p-6">
-    <div class="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-      <div>
-        <h1 class="font-medium">Project ready!</h1>
-        <p>You may now add components and start building.</p>
-        <p>We've already added the button component for you.</p>
-        <Button client:load className="mt-2">Button</Button>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>King James — 20 Years of Greatness · BK Arena 2026</title>
+    <meta name="description" content="Virtual Documentary Tour: 20 Years of Greatness. BK Arena, August 1st, 2026." />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html {
+        scroll-behavior: auto;
+        font-family: 'Geist Variable', 'Inter', sans-serif;
+      }
+
+      body {
+        background: #000;
+        color: #fff;
+        overflow-x: hidden;
+        overflow-y: scroll;
+      }
+
+      /* ── Keyframes ─────────────────────────────────── */
+      @keyframes scrollPulse {
+        0%, 100% { opacity: 0.9; transform: scaleY(1); }
+        50%       { opacity: 0.2; transform: scaleY(0.6); }
+      }
+
+      @keyframes pulseGold {
+        0%, 100% { text-shadow: 0 0 40px rgba(212,175,55,0.3); }
+        50%       { text-shadow: 0 0 80px rgba(212,175,55,0.6), 0 0 120px rgba(212,175,55,0.2); }
+      }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes spinSlow {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+
+      /* ── Act I Title ───────────────────────────────── */
+      #act1-title {
+        text-align: center;
+        animation: fadeInUp 1.2s ease forwards;
+        will-change: opacity, transform;
+      }
+
+      #act1-title h1 {
+        font-size: clamp(3.5rem, 11vw, 9rem);
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        line-height: 0.92;
+        color: #fff;
+        animation: pulseGold 3s ease-in-out infinite;
+      }
+
+      /* ── Audio button ──────────────────────────────── */
+      #audio-btn {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.65);
+        padding: 0.6rem 1.4rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        transition: color 0.3s, border-color 0.3s, background 0.3s;
+        font-family: inherit;
+        pointer-events: all;
+      }
+      #audio-btn:hover {
+        color: #D4AF37;
+        border-color: rgba(212,175,55,0.4);
+        background: rgba(212,175,55,0.06);
+      }
+      #audio-btn.enabled {
+        color: #D4AF37;
+        border-color: rgba(212,175,55,0.5);
+      }
+
+      /* ── ERA HUD ───────────────────────────────────── */
+      #era-hud {
+        position: fixed;
+        left: 2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        gap: 1.4rem;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+        pointer-events: none;
+      }
+
+      .hud-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .hud-pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.18);
+        transition: background 0.35s, transform 0.35s, box-shadow 0.35s;
+        flex-shrink: 0;
+      }
+
+      .hud-label {
+        font-size: 0.62rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.28);
+        transition: color 0.35s;
+        white-space: nowrap;
+      }
+
+      .hud-item.active .hud-pip {
+        background: #D4AF37;
+        box-shadow: 0 0 10px rgba(212,175,55,0.8);
+        transform: scale(1.5);
+      }
+
+      .hud-item.active .hud-label {
+        color: rgba(255,255,255,0.9);
+      }
+
+      /* ── Subtitle bar ──────────────────────────────── */
+      #subtitle-bar {
+        position: fixed;
+        bottom: 2.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+
+      #subtitle-text {
+        font-size: 0.72rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.75);
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(12px);
+        padding: 0.55rem 1.6rem;
+        border-radius: 2rem;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+
+      /* ── Terminal overlay ──────────────────────────── */
+      #terminal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: #030308;
+        opacity: 0;
+        pointer-events: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      #terminal-overlay.is-active {
+        pointer-events: all;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ═══════════════════════════════════════════════════════════════
+         WebGL Canvas — static, full-screen background layer
+    ═══════════════════════════════════════════════════════════════════ -->
+    <canvas
+      id="webgl"
+      style="position:fixed;inset:0;z-index:0;width:100%;height:100%;display:block;background:#000;"
+    ></canvas>
+
+    <!-- Scroll track: gives the page its 600vh height -->
+    <div id="scroll-track" style="height:600vh;width:100%;"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ACT I — Landing Overlay
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div
+      id="act1-overlay"
+      style="position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;"
+    >
+      <!-- King James portrait — full-screen atmospheric backdrop -->
+      <img
+        src="/images/King%20James%20portrait.jpg"
+        alt=""
+        aria-hidden="true"
+        style="
+          position:absolute;
+          inset:0;
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          object-position:center top;
+          opacity:0.12;
+          filter:grayscale(30%) contrast(1.2);
+          pointer-events:none;
+          user-select:none;
+        "
+      />
+      <!-- Radial vignette over portrait so title stays readable -->
+      <div style="
+        position:absolute;
+        inset:0;
+        background:radial-gradient(ellipse 70% 80% at 50% 50%, transparent 0%, rgba(0,0,0,0.7) 100%);
+        pointer-events:none;
+      "></div>
+
+      <div id="act1-title" style="position:relative;">
+        <p style="letter-spacing:0.45em;font-size:0.68rem;color:#D4AF37;text-transform:uppercase;margin-bottom:1.2rem;opacity:0.9;">
+          Virtual Tour · 2006 – 2026
+        </p>
+
+        <h1>KING<br />JAMES</h1>
+
+        <p style="margin-top:1.6rem;letter-spacing:0.22em;font-size:0.82rem;color:rgba(255,255,255,0.55);text-transform:uppercase;">
+          BK Arena · August 1st, 2026
+        </p>
+        <p style="margin-top:0.45rem;letter-spacing:0.3em;font-size:0.72rem;color:#D4AF37;text-transform:uppercase;">
+          20 Years of Greatness
+        </p>
+      </div>
+
+      <!-- Bottom controls row -->
+      <div
+        style="position:fixed;bottom:2.5rem;left:0;right:0;
+               display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;
+               pointer-events:none;"
+      >
+        <button id="audio-btn" class="enabled" style="pointer-events:all;">
+          ♪ Audio Enabled
+        </button>
+
+        <div id="scroll-prompt" style="display:flex;flex-direction:column;align-items:center;gap:0.6rem;pointer-events:none;">
+          <span style="font-size:0.62rem;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.42);">
+            Scroll to enter
+          </span>
+          <div
+            style="width:1px;height:44px;
+                   background:linear-gradient(to bottom,rgba(255,255,255,0.55),transparent);
+                   animation:scrollPulse 1.6s ease-in-out infinite;"
+          ></div>
+        </div>
+
+        <!-- Spacer to balance layout -->
+        <div style="width:190px;"></div>
       </div>
     </div>
-  </div>
-</Layout>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ERA HUD — Left-Rail Navigation
+    ═══════════════════════════════════════════════════════════════════ -->
+    <nav id="era-hud" aria-label="Era navigation">
+      <div class="hud-item" data-era="0">
+        <div class="hud-pip"></div>
+        <span class="hud-label">2006</span>
+      </div>
+      <div class="hud-item" data-era="1">
+        <div class="hud-pip"></div>
+        <span class="hud-label">2010</span>
+      </div>
+      <div class="hud-item" data-era="2">
+        <div class="hud-pip"></div>
+        <span class="hud-label">2014</span>
+      </div>
+      <div class="hud-item" data-era="3">
+        <div class="hud-pip"></div>
+        <span class="hud-label">2018</span>
+      </div>
+      <div class="hud-item" data-era="4">
+        <div class="hud-pip"></div>
+        <span class="hud-label">2022</span>
+      </div>
+      <div class="hud-item" data-era="5">
+        <div class="hud-pip"></div>
+        <span class="hud-label">BK Arena</span>
+      </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ERA Subtitle Bar — Bottom center
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div id="subtitle-bar">
+      <p id="subtitle-text"></p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         TERMINAL OVERLAY — Act III React Island
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div id="terminal-overlay">
+      <InteractiveTerminal client:idle />
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Three.js Engine — client:load React Island (returns null)
+    ═══════════════════════════════════════════════════════════════════ -->
+    <ThreeEngine client:load />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Inline DOM event bridge — connects engine events to 2D UI
+    ═══════════════════════════════════════════════════════════════════ -->
+    <script>
+      // ── ERA HUD activation ────────────────────────────────────────
+      window.addEventListener("era-change", (rawEvt) => {
+        const e = rawEvt as CustomEvent<{ era: number }>
+        const activeEra = e.detail.era
+        document.querySelectorAll<HTMLElement>(".hud-item").forEach((el) => {
+          const dotEra = parseInt(el.dataset.era ?? "-1", 10)
+          el.classList.toggle("active", dotEra === activeEra)
+        })
+      })
+
+      // ── Subtitle text ─────────────────────────────────────────────
+      window.addEventListener("subtitle-change", (rawEvt) => {
+        const e = rawEvt as CustomEvent<{ text: string }>
+        const el = document.getElementById("subtitle-text")
+        if (el) el.textContent = e.detail.text
+      })
+
+      // ── HUD + subtitle visibility ─────────────────────────────────
+      window.addEventListener("hud-visible", (rawEvt) => {
+        const e = rawEvt as CustomEvent<{ visible: boolean }>
+        const hud = document.getElementById("era-hud")
+        const bar = document.getElementById("subtitle-bar")
+        const vis = e.detail.visible ? "1" : "0"
+        if (hud) hud.style.opacity = vis
+        if (bar) bar.style.opacity = vis
+      })
+
+      // ── Terminal overlay fade ─────────────────────────────────────
+      window.addEventListener("terminal-progress", (rawEvt) => {
+        const e = rawEvt as CustomEvent<{ progress: number }>
+        const overlay = document.getElementById("terminal-overlay")
+        if (!overlay) return
+        const p = e.detail.progress
+        overlay.style.opacity = String(p)
+        overlay.classList.toggle("is-active", p > 0.05)
+      })
+
+      // ── Audio button — mute toggle ────────────────────────────────────
+      let isMuted = false
+      document.getElementById("audio-btn")?.addEventListener("click", () => {
+        isMuted = !isMuted
+        window.dispatchEvent(new CustomEvent("audio-toggle-mute"))
+        // Also ensure audio is unlocked if it wasn't yet
+        if (!isMuted) window.dispatchEvent(new CustomEvent("audio-enable"))
+        const btn = document.getElementById("audio-btn")
+        if (!btn) return
+        if (isMuted) {
+          btn.textContent = "♪ Audio Muted"
+          btn.classList.remove("enabled")
+        } else {
+          btn.textContent = "♪ Audio Enabled"
+          btn.classList.add("enabled")
+        }
+      })
+    </script>
+  </body>
+</html>
