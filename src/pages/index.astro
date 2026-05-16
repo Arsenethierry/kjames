@@ -104,6 +104,16 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
         pointer-events: none;
       }
 
+      @media (max-width: 480px) {
+        #era-hud { left: 0.75rem; gap: 1rem; }
+        .hud-label { display: none; }
+        .hud-pip { width: 6px; height: 6px; }
+        #subtitle-bar { bottom: 1.5rem; }
+        #subtitle-text { font-size: 0.62rem; padding: 0.45rem 1rem; }
+        #act1-title h1 { letter-spacing: 0.03em; }
+        #audio-btn { font-size: 0.6rem; padding: 0.5rem 1rem; }
+      }
+
       .hud-item {
         display: flex;
         align-items: center;
@@ -191,7 +201,7 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
     ></canvas>
 
     <!-- Scroll track: gives the page its 600vh height -->
-    <div id="scroll-track" style="height:600vh;width:100%;"></div>
+    <div id="scroll-track" style="height:700vh;width:100%;"></div>
 
     <!-- ═══════════════════════════════════════════════════════════════
          ACT I — Landing Overlay
@@ -308,7 +318,7 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
          TERMINAL OVERLAY — Act III React Island
     ═══════════════════════════════════════════════════════════════════ -->
     <div id="terminal-overlay">
-      <InteractiveTerminal client:idle />
+      <InteractiveTerminal client:load />
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════

@@ -155,6 +155,68 @@ function buildArenaTextTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(c)
 }
 
+// ─── DEDICATION TEXTURE ───────────────────────────────────────────────────────
+function buildDedicationTexture(name: string, message: string, accentHex: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas")
+  c.width = 1024
+  c.height = 576
+  const ctx = c.getContext("2d")!
+
+  // Dark glowing background
+  ctx.fillStyle = "#030308"
+  ctx.fillRect(0, 0, 1024, 576)
+
+  // Radial glow in accent colour
+  const grd = ctx.createRadialGradient(512, 288, 0, 512, 288, 480)
+  grd.addColorStop(0, accentHex + "55")
+  grd.addColorStop(0.5, accentHex + "18")
+  grd.addColorStop(1, "transparent")
+  ctx.fillStyle = grd
+  ctx.fillRect(0, 0, 1024, 576)
+
+  // Top accent line
+  ctx.fillStyle = accentHex
+  ctx.fillRect(120, 148, 784, 2)
+
+  // "DEDICATION" label
+  ctx.font = "400 18px Arial"
+  ctx.fillStyle = `${accentHex}cc`
+  ctx.textAlign = "center"
+  ctx.fillText("D E D I C A T I O N", 512, 132)
+
+  // Fan name
+  ctx.font = "bold 52px Arial"
+  ctx.fillStyle = "#ffffff"
+  const displayName = name.length > 20 ? name.slice(0, 20) + "…" : name
+  ctx.fillText(displayName.toUpperCase(), 512, 240)
+
+  // Message (word-wrap at ~50 chars per line)
+  ctx.font = "400 26px Arial"
+  ctx.fillStyle = "rgba(255,255,255,0.7)"
+  const words = message.split(" ")
+  const lines: string[] = []
+  let cur = ""
+  for (const w of words) {
+    const test = cur ? `${cur} ${w}` : w
+    if (test.length > 50 && cur) { lines.push(cur); cur = w }
+    else { cur = test }
+  }
+  if (cur) lines.push(cur)
+  const msgLines = lines.slice(0, 3)
+  const startY = 310
+  msgLines.forEach((line, i) => ctx.fillText(line, 512, startY + i * 38))
+
+  // Bottom line
+  ctx.fillStyle = "rgba(255,255,255,0.1)"
+  ctx.fillRect(120, 462, 784, 1)
+
+  ctx.font = "300 18px Arial"
+  ctx.fillStyle = "#D4AF37"
+  ctx.fillText("BK ARENA  ·  AUGUST 1, 2026", 512, 500)
+
+  return new THREE.CanvasTexture(c)
+}
+
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function ThreeEngine() {
   useEffect(() => {
@@ -168,12 +230,10 @@ export default function ThreeEngine() {
       powerPreference: "high-performance",
       alpha: false,
     })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Cap pixel ratio: 1.5 on mobile (saves ~44% fill), 2 on desktop
+    renderer.setPixelRatio(window.innerWidth < 768 ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2))
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.outputColorSpace = THREE.SRGBColorSpace
-
-    // Mobile: cut pixel ratio to save GPU
-    if (window.innerWidth < 768) renderer.setPixelRatio(1)
 
     // ── Scene & Camera ─────────────────────────────────────────────────────
     const scene = new THREE.Scene()
@@ -698,10 +758,7 @@ export default function ThreeEngine() {
     // separate .mp3 automatically — the audio track's volume is set to 0
     // when a video is present to avoid double-playback.
 
-    const isMobileDevice = window.innerWidth < 768
-
-    if (!isMobileDevice) {
-      screens.forEach((s, i) => {
+    screens.forEach((s, i) => {
         const video = document.createElement("video")
         video.src = `/videos/era-${s.era.year}.mp4`
         video.loop = true
@@ -756,7 +813,6 @@ export default function ThreeEngine() {
         video.addEventListener("error", () => { s.hasVideo = false })
         video.load()
       })
-    }
 
     // ══════════════════════════════════════════════════════════════════════
     // AUDIO MANAGEMENT
@@ -1087,12 +1143,47 @@ export default function ThreeEngine() {
     tick()
 
     // ── Resize ──────────────────────────────────────────────────────────
+    // ── Fan Dedication Spotlight ──────────────────────────────────────────
+    let dedicationTimeout: ReturnType<typeof setTimeout> | null = null
+    const onDedication = (rawEvt: Event) => {
+      const e = rawEvt as CustomEvent<{ name: string; message: string }>
+      const { name, message } = e.detail
+      const targetIdx = currentEra >= 0 && currentEra < screens.length ? currentEra : 0
+      const s = screens[targetIdx]
+      if (!s) return
+
+      const accentHex = s.era.accentHex
+      const dedicTex = buildDedicationTexture(name, message, accentHex)
+
+      // Save the previous map so we can restore it
+      const prevMap = s.mat.map
+      const prevEmissive = s.mat.emissiveIntensity
+
+      s.mat.map = dedicTex
+      s.mat.emissiveMap = dedicTex
+      s.mat.emissive.set(0xffffff)
+      s.mat.emissiveIntensity = 1.0
+      s.mat.needsUpdate = true
+
+      if (dedicationTimeout) clearTimeout(dedicationTimeout)
+      dedicationTimeout = setTimeout(() => {
+        if (engineDisposed) return
+        s.mat.map = prevMap
+        s.mat.emissiveMap = s.hasVideo && s.videoTex ? s.videoTex : (currentEra === targetIdx ? s.brightTex : s.dimTex)
+        s.mat.emissive.set(s.era.accent)
+        s.mat.emissiveIntensity = prevEmissive
+        s.mat.needsUpdate = true
+        dedicTex.dispose()
+      }, 5500)
+    }
+    window.addEventListener("fan-dedication", onDedication)
+
     function onResize() {
       camera.aspect = window.innerWidth / window.innerHeight
       camera.updateProjectionMatrix()
       renderer.setSize(window.innerWidth, window.innerHeight)
       renderer.setPixelRatio(
-        window.innerWidth < 768 ? 1 : Math.min(window.devicePixelRatio, 2),
+        window.innerWidth < 768 ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2),
       )
     }
     window.addEventListener("resize", onResize)
@@ -1103,7 +1194,9 @@ export default function ThreeEngine() {
     return () => {
       engineDisposed = true   // prevent async TextureLoader callback from firing
       cancelAnimationFrame(rafId)
+      if (dedicationTimeout) clearTimeout(dedicationTimeout)
       window.removeEventListener("resize", onResize)
+      window.removeEventListener("fan-dedication", onDedication)
       window.removeEventListener("audio-enable", onAudioEnable)
       window.removeEventListener("audio-toggle-mute", onAudioMuteToggle)
       window.removeEventListener("scroll", unlockAudio)

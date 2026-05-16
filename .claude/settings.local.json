@@ -6,7 +6,10 @@
       "Bash(Start-Process -NoNewWindow -FilePath \"npx\" -ArgumentList \"astro\",\"dev\",\"--port\",\"4321\")",
       "Bash(Start-Sleep -Seconds 4)",
       "Bash(Write-Host \"Dev server started\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4321/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4321/)",
+      "Bash(Get-ChildItem -Path \"z:\\\\DATA\\\\ARSENE\\\\2026\\\\FUN\\\\astro\\\\james\" -File -Depth 0)",
+      "Bash(Select-Object Name)",
+      "WebSearch"
     ]
   }
 }
