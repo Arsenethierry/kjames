@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { lsGet, lsSet } from "@/lib/storage"
 
 import CountdownTimer from "./CountdownTimer"
@@ -87,8 +87,41 @@ export default function InteractiveTerminal() {
   const [heartScale, setHeartScale] = useState(1)
   const [dedicated, setDedicated] = useState(false)
 
-  const nextId    = useRef(Math.max(...notes.map((n) => n.id)) + 1)
+  const nextId     = useRef(Math.max(...notes.map((n) => n.id)) + 1)
   const particleId = useRef(0)
+  const footerRef  = useRef<HTMLParagraphElement>(null)
+
+  // ── Start the virtual tour: fade out overlay → scroll to top ───────────
+  function startTour() {
+    const overlay = document.getElementById("terminal-overlay")
+    if (!overlay) return
+    window.dispatchEvent(new CustomEvent("tour-start"))
+    overlay.style.transition = "opacity 0.85s ease"
+    overlay.style.opacity = "0"
+    overlay.classList.remove("is-active")
+    setTimeout(() => {
+      overlay.style.transition = ""
+      window.scrollTo({ top: 0 })
+    }, 900)
+  }
+
+  // ── Auto-start tour when user scrolls to the bottom of the fan hub ─────
+  useEffect(() => {
+    const el = footerRef.current
+    const overlay = document.getElementById("terminal-overlay")
+    if (!el || !overlay) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        observer.disconnect()
+        setTimeout(() => startTour(), 900)
+      },
+      { root: overlay, threshold: 0.6 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // ── Heart click ────────────────────────────────────────────────────────
   function handleHeart() {
@@ -396,6 +429,7 @@ export default function InteractiveTerminal() {
       alignItems: "center",
       padding: "clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 1.5rem) 5rem",
     }}>
+
       {/* ── Gold top rule ──────────────────────────────────────────────── */}
       <div style={{
         width: "100%", maxWidth: "1100px", height: "1px",
@@ -418,7 +452,7 @@ export default function InteractiveTerminal() {
         </div>
 
         <p style={{ letterSpacing: "0.5em", fontSize: "0.65rem", color: "#D4AF37", textTransform: "uppercase", marginBottom: "1rem", opacity: 0.9 }}>
-          You&apos;ve arrived
+          King James · 20 Years of Greatness
         </p>
 
         <h1 style={{
@@ -434,29 +468,61 @@ export default function InteractiveTerminal() {
           August 1 · 20 Years of Greatness
         </p>
 
-        <a
-          href="https://bkarena.rw"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "inline-block", padding: "0.8rem 2.2rem",
-            background: "linear-gradient(135deg, #D4AF37, #f0c040)",
-            color: "#000", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.2em",
-            textTransform: "uppercase", borderRadius: "2rem", textDecoration: "none",
-            transition: "transform 0.2s, box-shadow 0.2s",
-            boxShadow: "0 4px 24px rgba(212,175,55,0.25)",
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLElement).style.transform = "scale(1.05)"
-            ;(e.currentTarget as HTMLElement).style.boxShadow = "0 6px 36px rgba(212,175,55,0.5)"
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLElement).style.transform = "scale(1)"
-            ;(e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px rgba(212,175,55,0.25)"
-          }}
-        >
-          Get Tickets →
-        </a>
+        {/* CTA row: tickets + tour */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", flexWrap: "wrap" }}>
+          <a
+            href="https://bkarena.rw"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block", padding: "0.8rem 2.2rem",
+              background: "linear-gradient(135deg, #D4AF37, #f0c040)",
+              color: "#000", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.2em",
+              textTransform: "uppercase", borderRadius: "2rem", textDecoration: "none",
+              transition: "transform 0.2s, box-shadow 0.2s",
+              boxShadow: "0 4px 24px rgba(212,175,55,0.25)",
+            }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLElement).style.transform = "scale(1.05)"
+              ;(e.currentTarget as HTMLElement).style.boxShadow = "0 6px 36px rgba(212,175,55,0.5)"
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.transform = "scale(1)"
+              ;(e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px rgba(212,175,55,0.25)"
+            }}
+          >
+            Get Tickets →
+          </a>
+
+          <button
+            onClick={startTour}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.8rem 2.2rem",
+              background: "transparent",
+              border: "1px solid rgba(212,175,55,0.45)",
+              color: "#D4AF37", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.2em",
+              textTransform: "uppercase", borderRadius: "2rem",
+              cursor: "pointer", fontFamily: "inherit",
+              transition: "background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              ;(e.currentTarget as HTMLElement).style.background = "rgba(212,175,55,0.1)"
+              ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(212,175,55,0.8)"
+              ;(e.currentTarget as HTMLElement).style.transform = "scale(1.05)"
+              ;(e.currentTarget as HTMLElement).style.boxShadow = "0 0 24px rgba(212,175,55,0.25)"
+            }}
+            onMouseLeave={(e) => {
+              ;(e.currentTarget as HTMLElement).style.background = "transparent"
+              ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(212,175,55,0.45)"
+              ;(e.currentTarget as HTMLElement).style.transform = "scale(1)"
+              ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
+            }}
+          >
+            <span style={{ fontSize: "0.75rem" }}>▶</span>
+            Take a Tour
+          </button>
+        </div>
       </header>
 
       {/* ── Countdown + Presence row ────────────────────────────────────── */}
@@ -504,7 +570,10 @@ export default function InteractiveTerminal() {
       <p style={{ marginTop: "2rem", fontSize: "0.62rem", letterSpacing: "0.22em", color: "rgba(255,255,255,0.22)", textTransform: "uppercase", textAlign: "center" }}>
         King James · 20 Years of Greatness · BK Arena · August 1, 2026
       </p>
-      <p style={{ marginTop: "0.5rem", fontSize: "0.58rem", letterSpacing: "0.15em", color: "rgba(255,255,255,0.12)", textTransform: "uppercase", textAlign: "center" }}>
+      <p
+        ref={footerRef}
+        style={{ marginTop: "0.5rem", fontSize: "0.58rem", letterSpacing: "0.15em", color: "rgba(255,255,255,0.12)", textTransform: "uppercase", textAlign: "center" }}
+      >
         built with love by @arsene
       </p>
 

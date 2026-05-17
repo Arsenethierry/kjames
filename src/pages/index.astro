@@ -32,6 +32,11 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
         50%       { opacity: 0.2; transform: scaleY(0.6); }
       }
 
+      @keyframes chevronBounce {
+        0%, 100% { transform: translateY(0);   opacity: 1;    }
+        50%       { transform: translateY(8px); opacity: 0.5;  }
+      }
+
       @keyframes pulseGold {
         0%, 100% { text-shadow: 0 0 40px rgba(212,175,55,0.3); }
         50%       { text-shadow: 0 0 80px rgba(212,175,55,0.6), 0 0 120px rgba(212,175,55,0.2); }
@@ -257,19 +262,40 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
                display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;
                pointer-events:none;"
       >
-        <button id="audio-btn" class="enabled" style="pointer-events:all;">
+        <button id="audio-btn" class="enabled" style="pointer-events:all;display:none;">
           ♪ Audio Enabled
         </button>
 
-        <div id="scroll-prompt" style="display:flex;flex-direction:column;align-items:center;gap:0.6rem;pointer-events:none;">
-          <span style="font-size:0.62rem;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.42);">
+        <div id="scroll-prompt" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;pointer-events:none;">
+          <span style="font-size:0.68rem;letter-spacing:0.32em;text-transform:uppercase;color:#D4AF37;font-weight:600;">
             Scroll to enter
           </span>
-          <div
-            style="width:1px;height:44px;
-                   background:linear-gradient(to bottom,rgba(255,255,255,0.55),transparent);
-                   animation:scrollPulse 1.6s ease-in-out infinite;"
-          ></div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28" height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#D4AF37"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="animation:chevronBounce 1.2s ease-in-out infinite;"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28" height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#D4AF37"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="animation:chevronBounce 1.2s ease-in-out infinite;animation-delay:0.15s;margin-top:-14px;opacity:0.5;"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
 
         <!-- Spacer to balance layout -->
@@ -317,7 +343,7 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
     <!-- ═══════════════════════════════════════════════════════════════
          TERMINAL OVERLAY — Act III React Island
     ═══════════════════════════════════════════════════════════════════ -->
-    <div id="terminal-overlay">
+    <div id="terminal-overlay" class="is-active" style="opacity:1">
       <InteractiveTerminal client:load />
     </div>
 
@@ -363,8 +389,15 @@ import InteractiveTerminal from "@/components/InteractiveTerminal"
         const overlay = document.getElementById("terminal-overlay")
         if (!overlay) return
         const p = e.detail.progress
+        overlay.style.transition = ""   // clear any smooth-fade transition
         overlay.style.opacity = String(p)
         overlay.classList.toggle("is-active", p > 0.05)
+      })
+
+      // ── Show audio button only when tour is active ────────────────────
+      window.addEventListener("tour-start", () => {
+        const btn = document.getElementById("audio-btn")
+        if (btn) btn.style.display = ""
       })
 
       // ── Audio button — mute toggle ────────────────────────────────────

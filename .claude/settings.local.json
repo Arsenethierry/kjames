@@ -9,7 +9,8 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4321/)",
       "Bash(Get-ChildItem -Path \"z:\\\\DATA\\\\ARSENE\\\\2026\\\\FUN\\\\astro\\\\james\" -File -Depth 0)",
       "Bash(Select-Object Name)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx tsc *)"
     ]
   }
 }
